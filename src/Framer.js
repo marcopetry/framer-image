@@ -1,5 +1,5 @@
 import { Box } from '@material-ui/core'
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef } from 'react'
 import { useStepper } from './hooks/useStepper'
 
 import FastForwardIcon from '@material-ui/icons/FastForward'
@@ -8,12 +8,13 @@ import PauseIcon from '@material-ui/icons/Pause'
 import PlayArrowIcon from '@material-ui/icons/PlayArrow'
 import { LinearProgressWithLabel } from './components/LinearProgress'
 import { Image } from './components/Image'
+import { useToggle } from './hooks/useToggle'
 
 export const Framer = ({ fps = 1, frames = [] }) => {
   const timerId = useRef(null)
 
   const [step, prevStep, nextStep, setExactlyStep] = useStepper(frames.length)
-  const [paused, setPaused] = useState(false)
+  const [paused, setPaused] = useToggle(false)
 
   const timer = useCallback(
     () =>
@@ -26,11 +27,11 @@ export const Framer = ({ fps = 1, frames = [] }) => {
   useEffect(() => {
     if (step >= frames.length - 1) {
       clearInterval(timerId.current)
+      setPaused()
       return
     }
-
     // return () => clearInterval(timerId.current)
-  }, [step, frames.length])
+  }, [step, frames.length, setPaused])
 
   useEffect(() => {
     if (paused) {
@@ -51,9 +52,17 @@ export const Framer = ({ fps = 1, frames = [] }) => {
   const handleClickPart = useCallback(
     (frameInterval) => {
       setExactlyStep(frameInterval)
+      setPaused()
     },
-    [setExactlyStep]
+    [setExactlyStep, setPaused]
   )
+
+  const handleNext = useCallback(() => {
+    if (step >= frames.length - 1) {
+      setExactlyStep(0)
+    }
+    setPaused()
+  }, [step, setExactlyStep, setPaused, frames])
 
   return (
     <Box flexDirection="column">
@@ -72,9 +81,9 @@ export const Framer = ({ fps = 1, frames = [] }) => {
       <Box justifyContent="space-around" display="flex" marginTop={5}>
         <FastRewindIcon onClick={prevStep} />
         {paused || step >= frames.length - 1 ? (
-          <PlayArrowIcon onClick={() => setPaused((oldPausedState) => !oldPausedState)} />
+          <PlayArrowIcon onClick={handleNext} />
         ) : (
-          <PauseIcon onClick={() => setPaused((oldPausedState) => !oldPausedState)} />
+          <PauseIcon onClick={() => setPaused()} />
         )}
         <FastForwardIcon onClick={nextStep} />
       </Box>
